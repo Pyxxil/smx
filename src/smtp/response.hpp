@@ -1,0 +1,6 @@
+
+namespace smtp {
+
+class Response;
+
+}

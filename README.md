@@ -1,6 +1,7 @@
 # Dependencies
 
-- CMake
+- CMake v3.0 (or greater)
+- boost v1.76
 
 # Instructions
 
