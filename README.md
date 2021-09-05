@@ -15,7 +15,7 @@ cmake .. && make
 It will sit there waiting for you to send it a request, I'd recommend curl:
 
 ```
-curl -d "message body" -X POST "http://localhost:3000/" -H "From: test" -H "To: other"
+curl -d "message body" -X POST "http://localhost:3000/" -H "From: test@test.com" -H "To: other@test.com" -H "Cc: someone@test.com"
 ```
 
 You'll have to manually shut it down, but it should receive several requests that way.

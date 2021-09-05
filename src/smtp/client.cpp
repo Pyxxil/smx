@@ -1,3 +1,5 @@
+#include <time.h>
+
 #include <boost/asio.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -54,6 +56,45 @@ void Client::send(std::string message) {
 
     logger.log("DATA");
     response = Request(socket).send("DATA");
+
+    std::string fm = fmt::format("From: {}", this->_sender);
+    logger.log(fm);
+    response = Request(socket).send(fm, false);
+
+    std::ostringstream to_stream;
+    std::copy(this->recipients.cbegin(), this->recipients.cend(),
+              std::ostream_iterator<std::string>(to_stream, ", "));
+
+    std::string recipients = to_stream.str();
+    std::string to =
+        fmt::format("To: {}", recipients.substr(0, recipients.length() - 2));
+    logger.log(to);
+    response = Request(socket).send(to, false);
+
+    if (!this->copies.empty()) {
+      std::ostringstream cc_stream;
+      std::copy(this->copies.cbegin(), this->copies.cend(),
+                std::ostream_iterator<std::string>(cc_stream, ", "));
+
+      std::string copies = cc_stream.str();
+      std::string cc =
+          fmt::format("CC: {}", copies.substr(0, copies.length() - 2));
+      logger.log(cc);
+      response = Request(socket).send(to, false);
+    }
+
+    char time_string[200];
+    std::time_t time;
+    struct tm *gmtime;
+    const char *format = "%a, %d %b %y %T %z";
+
+    time = std::time(NULL);
+    gmtime = std::gmtime(&time);
+
+    std::strftime(time_string, sizeof(time_string), format, gmtime);
+    std::string date = fmt::format("Date: {}", time_string);
+    logger.log(date);
+    response = Request(socket).send(date, false);
 
     logger.log(message);
     // This should be chunked up into several messages I think, but I'm not sure
