@@ -20,7 +20,12 @@ public:
 
   auto header(std::string_view header, std::string_view value) -> Response &;
 
+  auto status(Status status) -> Response &;
+
+  auto get_status() -> http::Status { return this->_status; }
+
 private:
+  http::Status _status = http::Status::OK;
   tcp::socket *socket;
   http::Headers headers;
 };

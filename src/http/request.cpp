@@ -3,13 +3,8 @@
 
 #include <boost/asio/read_until.hpp>
 
+#include "../utils.hpp"
 #include "request.hpp"
-
-auto trim(std::string s) -> std::string {
-  s.erase(std::remove(s.begin(), s.end(), '\n'), s.end());
-  s.erase(std::remove(s.begin(), s.end(), '\r'), s.end());
-  return s;
-}
 
 namespace http {
 
@@ -20,6 +15,16 @@ Request::Request(tcp::socket &socket) {
       socket, boost::asio::dynamic_string_buffer(request), "\r\n\r\n");
 
   std::size_t position = 0;
+
+  auto &&pos = request.find("\r\n");
+  std::string status_line(request.substr(0, pos));
+
+  auto &&start = status_line.find(' ') + 1;
+  auto &&end = status_line.rfind(' ');
+
+  this->_path = trim(status_line.substr(start, end - start));
+
+  request = request.substr(pos + 1, request.length());
 
   while (std::string::npos != (position = request.find("\r\n"))) {
     std::string line(request.substr(0, position));
@@ -61,6 +66,8 @@ auto Request::add_header(std::string_view header, std::string_view value)
 }
 
 auto Request::body() const -> const std::string & { return this->mBody; }
+
+auto Request::path() const -> const std::string & { return this->_path; }
 
 auto Request::add_body(std::string_view _body) -> Request & {
   this->mBody = _body;

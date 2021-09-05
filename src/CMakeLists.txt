@@ -3,6 +3,7 @@ include (FetchContent)
 add_executable(server
     main.cpp
 
+    utils.hpp
     logger.cpp logger.hpp
 
     http/common.hpp
@@ -10,6 +11,8 @@ add_executable(server
     http/request.cpp http/request.hpp
     http/response.cpp http/response.hpp
 
+    smtp/common.hpp
+    smtp/client.cpp smtp/client.hpp
     smtp/server.cpp smtp/server.hpp
     smtp/request.cpp smtp/request.hpp
     smtp/response.cpp smtp/response.hpp

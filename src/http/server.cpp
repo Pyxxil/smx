@@ -39,11 +39,20 @@ auto Server::run() -> int {
 
     const auto request = Request(socket);
 
-    logger.log("Incoming message:").log(request.body());
-
     auto response = Response(socket);
 
-    this->handlers.at("/")(request, response);
+    auto &&handler = this->handlers.find(request.path());
+
+    if (handler != this->handlers.cend()) {
+      handler->second(request, response);
+    } else {
+      response.status(http::Status::NotFound).send("Invalid route");
+    }
+
+    auto status = response.get_status();
+    logger.log(fmt::format("{} {}", request.path(), status),
+               response.get_status() == http::Status::OK ? LogLevel::INFO
+                                                         : LogLevel::ERROR);
   }
 }
 

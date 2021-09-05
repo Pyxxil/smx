@@ -1,15 +1,12 @@
 #include <iostream>
 #include <thread>
 
-#include <boost/asio.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/ip/tcp.hpp>
-
-using boost::asio::ip::tcp;
-
 #include "http/request.hpp"
 #include "http/response.hpp"
 #include "http/server.hpp"
+
+#include "smtp/client.hpp"
+#include "smtp/common.hpp"
 #include "smtp/server.hpp"
 
 auto main(int argc, char **argv) -> int {
@@ -21,22 +18,51 @@ auto main(int argc, char **argv) -> int {
           .bind(3000)
           // I don't think we actually need path's in this format, but it
           // was fun setting this up
-          .attach("/",
-                  [](const http::Request &request, http::Response &response) {
-                    const auto &content_type = request.header("Content-Type");
+          .attach("/", [](const http::Request &request,
+                          http::Response &response) {
+            auto &&from = request.header("From");
+            if (!from) {
+              response.status(http::Status::BadRequest)
+                  .send("A 'From' header is required");
+              return;
+            }
 
-                    boost::asio::io_context io_context;
-                    auto resolver = tcp::resolver(io_context);
-                    auto endpoint = resolver.resolve(
-                        tcp::resolver::query(tcp::v4(), "127.0.0.1", "25"));
-                    auto socket = tcp::socket(io_context);
-                    boost::asio::connect(socket, endpoint);
+            auto &&to = request.header("To");
+            if (!to) {
+              response.status(http::Status::BadRequest)
+                  .send("A 'To' header is required");
+              return;
+            }
 
-                    socket.send(boost::asio::buffer("EHLO localhost\r\n"));
+            auto client = smtp::Client().sender(from->at(0));
 
-                    response.header("Content-Type", content_type->at(0))
-                        .send(request.body());
-                  });
+            for (auto &&recipient : *to) {
+              client.add_recipient(recipient);
+            }
+
+            auto &&subject = request.header("Subject");
+            if (subject) {
+              client.subject(subject->at(0));
+            }
+
+            auto &&cc = request.header("Cc");
+            if (cc) {
+              for (auto &&to : *cc) {
+                client.cc(to);
+              }
+            }
+
+            client.on(smtp::Event::ConnectionClosed, [&response](
+                                                         smtp::Response &res) {
+              if (res.ok()) {
+                response.status(http::Status::OK).send(res.response());
+              } else {
+                response.status(http::Status::BadRequest).send(res.response());
+              }
+            });
+
+            client.send(request.body());
+          });
 
   auto httpThread = std::thread(&http::Server::run, &httpServer);
   auto smtpThread = std::thread(&smtp::Server::run, &smtpServer);

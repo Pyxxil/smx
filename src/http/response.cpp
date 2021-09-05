@@ -4,16 +4,32 @@
 
 #include "response.hpp"
 
+constexpr auto status(http::Status stat) -> std::string_view {
+  switch (stat) {
+  case http::Status::BadRequest:
+    return "Bad Request";
+  default:
+    return "Ok";
+  }
+}
+
 namespace http {
 
-void Response::send(std::string_view content) {
+void Response::send(std::string_view response) {
   std::stringstream sstream;
 
-  sstream << "HTTP/1.1 200 Ok\r\nConnection: "
-             "closed\r\n\r\n"
-          << content << "\r\n";
+  sstream << "HTTP/1.1 " << this->_status << ' ' << ::status(this->_status)
+          << "\r\n"
+          << "Connection: closed\r\n\r\n"
+          << response << "\r\n";
 
   boost::asio::write(*(this->socket), boost::asio::buffer(sstream.str()));
+}
+
+auto Response::status(Status _status) -> Response & {
+  this->_status = _status;
+
+  return *this;
 }
 
 auto Response::header(std::string_view header, std::string_view value)
