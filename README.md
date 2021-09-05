@@ -5,7 +5,7 @@
 
 # Instructions
 
-```
+```bash
 mkdir build
 cd build
 cmake .. && make
@@ -14,7 +14,7 @@ cmake .. && make
 
 It will sit there waiting for you to send it a request, I'd recommend curl:
 
-```
+```bash
 curl -d "message body" -X POST "http://localhost:3000/" -H "From: test@test.com" -H "To: other@test.com" -H "Cc: someone@test.com"
 ```
 
